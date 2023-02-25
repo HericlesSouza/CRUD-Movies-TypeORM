@@ -34,7 +34,7 @@ describe("Tests on route: GET /movies. Must be able to list all movies.", () => 
         expect(response.body).toEqual(
             expect.objectContaining(expectResults.bodyToEqual)
         );
-    });
+    }); 
 
     it("Query parameters: 'page' equals 0 and without 'perPage'", async () => {
         const response = await supertest(app).get(baseUrl + "?page=0");
