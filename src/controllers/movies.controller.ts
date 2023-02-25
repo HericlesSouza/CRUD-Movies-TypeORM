@@ -30,7 +30,7 @@ export const updateMovieController = async (req: Request, res: Response): Promis
 export const deleteMovieController = async (req: Request, res: Response): Promise <Response> => {
     const idMovie = parseInt(req.params.id);
 
-    const deleteMovie = await deleteMovieService(idMovie);
+    await deleteMovieService(idMovie);
 
     return res.status(204).send();
 };

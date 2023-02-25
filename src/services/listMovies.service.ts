@@ -1,100 +1,71 @@
 import { Request } from "express";
 import { AppDataSource } from "../data-source";
 import { Movie } from "../entities";
-import { iMoviePaginationReturn, TAllMovies } from "../interfaces/movies.interfaces";
+import { iMoviePaginationReturn} from "../interfaces/movies.interfaces";
 
-export const listMoviesServices = async (req: Request): Promise<TAllMovies | iMoviePaginationReturn | any> => {
+export const listMoviesServices = async (req: Request): Promise<iMoviePaginationReturn> => {
     const sort = typeof req.query.sort === "string" ? req.query.sort.toLowerCase() : undefined;
-    const order = req.query.order === "DESC" || req.query.order === "desc" ? req.query.order.toUpperCase() : "ASC";
+    const order = req.query.order === "DESC" || req.query.order === "desc" ? "DESC" : "ASC";
     let page = Number(req.query.page) || 1;
     let perPage = Number(req.query.perPage) || 5;
     let prevPage: string | null = `http://localhost:3000/movies?page=${page - 1}&perPage=${perPage}`;
-    let nextPage: string    | null = `http://localhost:3000/movies?page=${page + 1}&perPage=${perPage}`;
 
-    if (page < 0 || page == 1) {
+    if (page < 1) {
         page = 1;
-        prevPage = null;
     }
 
     if (perPage <= 0 || perPage > 5) {
         perPage = 5;
     }
 
+    let nextPage: string | null = `http://localhost:3000/movies?page=${page + 1}&perPage=${perPage}`;
+
+    if (page === 1) {
+        prevPage = null;
+    }
+
     const movieRepository = AppDataSource.getRepository(Movie);
 
-    if ((sort === "price" || sort === "duration") && (!req.query.page && !req.query.perPage)) {
-        const movie = await movieRepository.find({
-            order: { [sort]: order }
-        });
+    let movie: Movie[];
+    let count: number;
+    let checkAnyMovieExists: Movie[];
 
-        const movieFormatted = {
-            count: movie.length,
-            data: movie
-        };
-
-        return movieFormatted;
-    }
-
-
-    if ((req.query.page || req.query.perPage) && !sort) {
-        const movie = await movieRepository.find({
+    if (!sort) {
+        [movie, count] = await movieRepository.findAndCount({
             take: perPage,
             skip: perPage * (page - 1),
+            order: { id: "ASC" }
         });
 
-        const checkAnyMovieExists = await movieRepository.find({
+        checkAnyMovieExists = await movieRepository.find({
             take: perPage,
-            skip: perPage * (page + 1),
+            skip: perPage * page,
+            order: { id: "ASC" }
         });
-
-        if (checkAnyMovieExists.length === 0) {
-            nextPage = null;
-        }
-
-        const responseMovieFormatted: iMoviePaginationReturn = {
-            prevPage: prevPage,
-            nextPage: nextPage,
-            count: movie.length,
-            data: movie
-        };
-
-        return responseMovieFormatted;
-    }
-
-    if ((sort === "price" || sort === "duration") && (req.query.page || req.query.perPage)) {
-        const movie = await movieRepository.find({
+    } else {
+        [movie, count] = await movieRepository.findAndCount({
             take: perPage,
             skip: perPage * (page - 1),
             order: { [sort]: order }
         });
 
-        const checkAnyMovieExists = await movieRepository.find({
+        checkAnyMovieExists = await movieRepository.find({
             take: perPage,
-            skip: perPage * (page + 1),
+            skip: perPage * page,
+            order: { [sort]: order }
         });
-
-        if (checkAnyMovieExists.length === 0) {
-            nextPage = null;
-        }
-
-        const responseMovieFormatted: iMoviePaginationReturn = {
-            prevPage: prevPage,
-            nextPage: nextPage,
-            count: movie.length,
-            data: movie
-        };
-
-        return responseMovieFormatted;
     }
 
-    const movie = await movieRepository.find();
+    if (checkAnyMovieExists.length === 0) {
+        nextPage = null;
+    }
 
-    const formattedMovie = {
-        count: movie.length,
-        data: movie,
+    const movieFormatted: iMoviePaginationReturn = {
+        prevPage: prevPage,
         nextPage: nextPage,
-        prevPage: null
+        count: count,
+        data: movie
     };
 
-    return formattedMovie;
+    return movieFormatted;
 };
