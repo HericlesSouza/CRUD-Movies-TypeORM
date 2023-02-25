@@ -17,20 +17,20 @@ export const ensureMovieExists = async (req: Request, res: Response, next: NextF
             throw new AppError("Movie not found", 404);
         }
     }
-    
+
     const movieRepository = AppDataSource.getRepository(Movie);
 
-    const movie = await movieRepository.findOne({
-        where: {
-            name: req.body.name
+    const name: string | null = req.body.name;
+
+    if (name) {
+        const movie = await movieRepository.findOneBy({
+            name: name
+        });
+
+        if (movie) {
+            throw new AppError("Movie already exists.", 409);
         }
-    });
-    console.log(req.method);
-
-    if (movie) {
-        throw new AppError("Movie already exists.", 409);
     }
-
 
     return next();
 };

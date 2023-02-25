@@ -10,3 +10,5 @@ export const movieSchema = z.object({
 export const createMovieSchema = movieSchema.omit({ id: true });
 
 export const returnAllMovies = movieSchema.array();
+
+export const updateMovieSchema = createMovieSchema.partial();
